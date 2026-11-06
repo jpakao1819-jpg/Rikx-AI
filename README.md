@@ -1,46 +1,30 @@
 # Rikx-AI
 
-**Rikx-AI is a forex trading AI project focused on real-time market information, explainable analysis, and safer trading practice.**
+**Rikx-AI is a forex learning and decision-support project.** The current first version is a browser-based 12-week study program with a local progress tracker, styled to match the portfolio's midnight, crimson, and antique-gold theme.
 
-> **Project status:** The capabilities below describe the product direction and planned features; they should not be considered available until they are implemented and connected to reliable market-data and broker services.
+## Run the learning program
 
-## Product goals
+Open `index.html` in a modern browser, or host the repository as a static website. No build step, account, API key, or external JavaScript dependency is required. Week-completion progress is saved in browser local storage on the device you use; it does not sync across devices. Google Fonts are loaded online for Cinzel and Inter, with local serif and sans-serif fallbacks.
 
-Rikx-AI aims to help users follow forex markets, understand potential trade setups, and practice strategies. It is intended as a decision-support tool—not a guarantee of results or a substitute for independent judgment.
+The 12-week curriculum covers forex basics, market structure, leverage and risk, economic fundamentals, chart interpretation, testable hypotheses, position sizing, trading psychology, backtesting, evidence evaluation, paper trading, and a final review. It is designed for roughly 3–5 hours per week and can be completed at your own pace.
 
-## Planned features
+## Learning from reliable sources
 
-- **Real-time market dashboard:** Show live currency-pair prices, charts, trends, and forex session status, with visible data timestamps and connection status.
-- **AI market analysis:** Summarize price action and selected indicators, and explain factors that may be influencing a currency pair.
-- **Explainable trade ideas:** Present possible entry, stop-loss, and take-profit levels alongside the analysis, assumptions, and uncertainty. Signals are not guarantees.
-- **Alerts:** Notify users when a chosen pair reaches a price or meets user-defined conditions.
-- **Backtesting:** Test strategies against historical data, accounting for fees and slippage where data is available.
-- **Paper trading:** Practice with simulated funds before considering real-money trading.
-- **Trade journal:** Record decisions and outcomes to help users review performance and learn from past trades.
+The curriculum points learners toward public educational and reference material from organizations such as the U.S. Commodity Futures Trading Commission (CFTC), National Futures Association (NFA), Bank for International Settlements (BIS), Federal Reserve, and CME Group. Rikx does not scrape or ingest their content automatically. Review each source's current material, terms, and jurisdictional relevance.
 
-## Real-time operation
+## Current limitations
 
-Real-time updates are a key goal for Rikx-AI. To provide them, the application will need a suitable live forex market-data provider and a reliable way to stream or frequently refresh quotes. Provider availability, licensing, latency, and outages can affect the data. Rikx-AI should display when information was last updated and clearly indicate delayed, stale, or unavailable data rather than presenting it as live.
+Rikx is an educational study planner, not an autonomous AI trader. It does not fetch live market prices, learn from people automatically, give personalized financial advice, connect to a broker, or place trades. The planned features below are future product goals, not implemented capabilities.
 
-Live market data is separate from live trading. Broker integration and automated order placement are not implied by this project description. Any future live-trading capability should be opt-in, require explicit user confirmation, and include thoroughly tested risk controls.
+## Planned product direction
 
-## Safety, transparency, and privacy
+- **Real-time market dashboard:** Live currency-pair prices, charts, trends, session status, timestamps, and stale-data indicators, after integrating a suitable licensed data provider.
+- **AI market analysis:** Explainable summaries of price action and selected indicators, with explicit uncertainty.
+- **Trade ideas and alerts:** Potential setups and user-defined notifications, clearly labeled as uncertain—not guarantees.
+- **Backtesting and paper trading:** Historical strategy evaluation that accounts for costs, and simulated practice before any live trading.
+- **Trade journal:** A record of decisions and outcomes for review.
+- **Safety and privacy:** User-controlled risk limits, no automated trading by default, secure handling of credentials, and minimal personal-data collection.
 
-- Make risk visible before a trade; support configurable position-size limits and daily-loss guardrails.
-- Keep automated trading off by default and put users in control of trade decisions.
-- Explain which data and indicators informed an analysis, and communicate uncertainty clearly.
-- Handle missing, delayed, or disconnected market data safely.
-- Protect account credentials and minimize the collection and retention of personal or financial data.
-- Remind users that forex trading involves substantial risk and AI-generated analysis can be wrong.
+## Risk notice
 
-## Suggested development order
-
-1. Build a read-only dashboard with reliable data timestamps and connection indicators.
-2. Add explainable analysis and user-configurable alerts.
-3. Add paper trading and a trade journal.
-4. Add historical backtesting with realistic costs.
-5. Evaluate any broker or live-trading integration only after security and risk controls are implemented and tested.
-
-## Disclaimer
-
-Rikx-AI is for informational and educational purposes. Market analysis and trade ideas are not financial advice, and no prediction or strategy can guarantee profits. Forex trading can result in the loss of some or all of your investment. Verify data independently and make your own decisions.
+Forex trading involves substantial risk and may not be suitable for everyone. This project is for educational purposes and is not financial advice. AI-generated analysis can be wrong, and no strategy or prediction can guarantee profits. Do not risk money you cannot afford to lose.

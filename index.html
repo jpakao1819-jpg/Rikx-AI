@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#07060a">
+  <meta name="description" content="Rikx-AI's 12-week forex learning program and progress tracker.">
+  <title>Rikx-AI | Forex Learning Program</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#home" aria-label="Rikx-AI home"><span class="brand-mark">R</span><span class="brand-name">Rikx<span>-AI</span></span></a>
+    <span class="program-label">12-WEEK LEARNING PROGRAM</span>
+  </header>
+
+  <main id="home">
+    <section class="hero">
+      <p class="eyebrow">LEARN FIRST · PRACTICE SAFELY</p>
+      <h1>Build forex knowledge,<br><span>one week at a time.</span></h1>
+      <p class="hero-copy">A structured three-month journey through forex fundamentals, risk management, market analysis, and paper-trading practice—guided by credible educational resources.</p>
+      <a class="button primary" href="#curriculum">Explore the program <span aria-hidden="true">↓</span></a>
+      <p class="status-note"><span class="status-dot"></span>Learning mode · No live trades · Progress saved in this browser</p>
+    </section>
+
+    <section class="progress-panel" aria-labelledby="progress-title">
+      <div class="progress-heading">
+        <div><p class="eyebrow">YOUR JOURNEY</p><h2 id="progress-title">12-week progress</h2></div>
+        <p class="progress-count"><strong id="completed-count">0</strong><span> / 12 weeks</span></p>
+      </div>
+      <div class="progress-track" id="progress-bar" role="progressbar" aria-label="Program completion" aria-valuemin="0" aria-valuemax="12" aria-valuenow="0"><span id="progress-fill"></span></div>
+      <p class="progress-hint" id="progress-hint">Start with Week 1. Mark a week complete after its study and practice.</p>
+    </section>
+
+    <section class="curriculum-section" id="curriculum">
+      <div class="section-heading"><div><p class="eyebrow">THE CURRICULUM</p><h2>Three months of deliberate study</h2></div><p>About 3–5 hours per week · Learn at your own pace</p></div>
+      <div class="phase-grid" aria-label="Program phases">
+        <div class="phase"><span>01</span><div><strong>Foundations</strong><small>Weeks 1–4 · Understand the market</small></div></div>
+        <div class="phase"><span>02</span><div><strong>Analysis &amp; risk</strong><small>Weeks 5–8 · Build a process</small></div></div>
+        <div class="phase"><span>03</span><div><strong>Practice &amp; review</strong><small>Weeks 9–12 · Test without real money</small></div></div>
+      </div>
+      <div class="week-list" id="week-list" aria-live="polite"></div>
+    </section>
+
+    <section class="principles" aria-labelledby="principles-title">
+      <p class="eyebrow">HOW RIKX SHOULD LEARN</p>
+      <h2 id="principles-title">Principles over promises</h2>
+      <div class="principle-grid">
+        <article><span>01</span><h3>Prefer credible sources</h3><p>Use primary and established educational material. Treat marketing claims, influencer opinions, and profit screenshots as unverified—not evidence.</p></article>
+        <article><span>02</span><h3>Measure honestly</h3><p>Test chronologically on unseen data, include spreads and slippage, and compare with simple baselines. A high win rate alone proves little.</p></article>
+        <article><span>03</span><h3>Protect the learner</h3><p>Practice with simulated funds, communicate uncertainty, and use risk limits. This program does not connect to a broker or place trades.</p></article>
+      </div>
+    </section>
+
+    <section class="resources" aria-labelledby="resources-title">
+      <p class="eyebrow">START WITH TRUSTED MATERIAL</p>
+      <h2 id="resources-title">Learning resources</h2>
+      <p class="resource-intro">These public educational and reference materials can support your study. Check current information, terms, and relevance to your jurisdiction.</p>
+      <ul class="resource-list">
+        <li><a href="https://www.cftc.gov/LearnAndProtect" target="_blank" rel="noopener noreferrer">U.S. CFTC — Learn &amp; Protect</a><span>Consumer education and derivatives-market information</span></li>
+        <li><a href="https://www.nfa.futures.org/investors/investor-resources.html" target="_blank" rel="noopener noreferrer">NFA — Investor Resources</a><span>Information about futures, forex, and associated risks</span></li>
+        <li><a href="https://www.bis.org/statistics/rpfx22.htm" target="_blank" rel="noopener noreferrer">BIS — Triennial Central Bank Survey</a><span>Research and statistics on global foreign-exchange markets</span></li>
+        <li><a href="https://www.federalreserve.gov/monetarypolicy.htm" target="_blank" rel="noopener noreferrer">Federal Reserve — Monetary Policy</a><span>Primary-source policy statements and related materials</span></li>
+        <li><a href="https://www.cmegroup.com/education.html" target="_blank" rel="noopener noreferrer">CME Group — Education</a><span>Educational material on markets, products, and risk</span></li>
+      </ul>
+    </section>
+
+    <aside class="disclaimer"><strong>Important risk notice</strong><p>Forex trading is high risk and may not be suitable for everyone. This program is educational, not financial advice or a trading recommendation. You can lose some or all of your money. AI-generated analysis can be wrong, and no strategy or prediction can guarantee profits.</p></aside>
+  </main>
+
+  <footer><a class="brand" href="#home"><span class="brand-mark">R</span><span class="brand-name">Rikx<span>-AI</span></span></a><span>Learn carefully · Practice on paper · Keep control</span></footer>
+</body>
+</html>
