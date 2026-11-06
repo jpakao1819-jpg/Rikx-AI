@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#07060a">
-  <meta name="description" content="Rikx-AI's 12-week forex learning program and progress tracker.">
+  <meta name="description" content="Rikx-AI's 12-week forex learning program and local learning coach.">
   <title>Rikx-AI | Forex Learning Program</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,8 +23,27 @@
       <p class="eyebrow">LEARN FIRST · PRACTICE SAFELY</p>
       <h1>Build forex knowledge,<br><span>one week at a time.</span></h1>
       <p class="hero-copy">A structured three-month journey through forex fundamentals, risk management, market analysis, and paper-trading practice—guided by credible educational resources.</p>
-      <a class="button primary" href="#curriculum">Explore the program <span aria-hidden="true">↓</span></a>
+      <a class="button primary" href="#rikx-chat">Talk with Rikx <span aria-hidden="true">↓</span></a>
       <p class="status-note"><span class="status-dot"></span>Learning mode · No live trades · Progress saved in this browser</p>
+    </section>
+
+    <section class="chat-section" id="rikx-chat" aria-labelledby="chat-title">
+      <div class="section-heading"><div><p class="eyebrow">YOUR LEARNING COMPANION</p><h2 id="chat-title">Talk with Rikx</h2></div><span class="local-badge"><span></span>LOCAL DEMO</span></div>
+      <p class="chat-intro">Ask about forex concepts or your study plan. Rikx can remember notes and learning preferences on this device when you explicitly ask—but this starter version uses built-in responses, not a live AI model.</p>
+      <div class="chat-shell">
+        <div class="chat-messages" id="chat-messages" role="log" aria-live="polite" aria-relevant="additions text"></div>
+        <div class="suggestions" aria-label="Try asking Rikx">
+          <button type="button" class="suggestion" data-prompt="What is a pip?">What is a pip?</button>
+          <button type="button" class="suggestion" data-prompt="Explain leverage simply">Explain leverage</button>
+          <button type="button" class="suggestion" data-prompt="What should I study this week?">What should I study?</button>
+        </div>
+        <form class="chat-form" id="chat-form">
+          <label class="visually-hidden" for="chat-input">Message Rikx</label>
+          <textarea id="chat-input" name="message" rows="2" maxlength="600" placeholder="Ask Rikx a learning question…" required></textarea>
+          <button class="send-button" type="submit">Send <span aria-hidden="true">↗</span></button>
+        </form>
+        <div class="chat-controls"><p id="memory-status">Messages and any notes you ask Rikx to remember stay in this browser.</p><button id="clear-chat" class="text-button" type="button">Clear chat &amp; memory</button></div>
+      </div>
     </section>
 
     <section class="progress-panel" aria-labelledby="progress-title">

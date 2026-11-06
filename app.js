@@ -14,24 +14,23 @@ const weeks = [
 ];
 
 const STORAGE_KEY = "rikx-learning-program-v1";
+const CHAT_KEY = "rikx-chat-history-v1";
+const MEMORY_KEY = "rikx-learning-memory-v1";
 const weekList = document.querySelector("#week-list");
 const progressCount = document.querySelector("#completed-count");
 const progressFill = document.querySelector("#progress-fill");
 const progressBar = document.querySelector("#progress-bar");
 const progressHint = document.querySelector("#progress-hint");
 
-function loadProgress() {
-  try {
-    const value = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-    return Array.isArray(value) ? value : [];
-  } catch {
-    return [];
-  }
+function loadJSON(key, fallback) {
+  try { return JSON.parse(localStorage.getItem(key) || JSON.stringify(fallback)); }
+  catch { return fallback; }
 }
 
-const completedWeeks = new Set(loadProgress().filter((week) => Number.isInteger(week) && week >= 0 && week < weeks.length));
+const completedWeeks = new Set(loadJSON(STORAGE_KEY, []).filter((week) => Number.isInteger(week) && week >= 0 && week < weeks.length));
 
-function render() {
+function renderWeeks() {
+  const weekList = document.querySelector("#week-list");
   weekList.replaceChildren();
   const nextWeek = weeks.findIndex((_, index) => !completedWeeks.has(index));
 
@@ -84,14 +83,10 @@ function render() {
     checkbox.checked = completedWeeks.has(index);
     checkbox.setAttribute("aria-label", `Mark week ${index + 1} complete`);
     checkbox.addEventListener("change", () => {
-      if (checkbox.checked) completedWeeks.add(index);
-      else completedWeeks.delete(index);
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify([...completedWeeks]));
-      } catch {
-        progressHint.textContent = "Progress could not be saved in this browser, but you can still use the program.";
-      }
-      render();
+      if (checkbox.checked) completedWeeks.add(index); else completedWeeks.delete(index);
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify([...completedWeeks])); }
+      catch { progressHint.textContent = "Progress could not be saved in this browser, but you can still use the program."; }
+      renderWeeks();
     });
     const labelText = document.createElement("span");
     labelText.textContent = "Mark this week complete";
@@ -117,12 +112,121 @@ function appendList(parent, headingText, items) {
   const heading = document.createElement("h3");
   heading.textContent = headingText;
   const list = document.createElement("ul");
-  items.forEach((item) => {
-    const li = document.createElement("li");
-    li.textContent = item;
-    list.append(li);
-  });
+  items.forEach((item) => { const li = document.createElement("li"); li.textContent = item; list.append(li); });
   parent.append(heading, list);
 }
 
-render();
+const chatLog = document.querySelector("#chat-messages");
+const chatForm = document.querySelector("#chat-form");
+const chatInput = document.querySelector("#chat-input");
+const memoryStatus = document.querySelector("#memory-status");
+let chatHistory = loadJSON(CHAT_KEY, []);
+if (!Array.isArray(chatHistory)) chatHistory = [];
+let learningMemory = loadJSON(MEMORY_KEY, []);
+if (!Array.isArray(learningMemory)) learningMemory = [];
+
+function addMessage(role, text, save = true) {
+  const message = { role, text: String(text).slice(0, 2000) };
+  const bubble = document.createElement("article");
+  bubble.className = `chat-message ${role === "user" ? "user-message" : "rikx-message"}`;
+  const name = document.createElement("strong");
+  name.className = "message-name";
+  name.textContent = role === "user" ? "You" : "Rikx · Learning demo";
+  const body = document.createElement("p");
+  body.textContent = message.text;
+  bubble.append(name, body);
+  chatLog.append(bubble);
+  chatLog.scrollTop = chatLog.scrollHeight;
+  if (save) {
+    chatHistory.push(message);
+    chatHistory = chatHistory.slice(-60);
+    safeSave(CHAT_KEY, chatHistory);
+  }
+}
+
+function safeSave(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); return true; }
+  catch { return false; }
+}
+
+function updateMemoryStatus() {
+  memoryStatus.textContent = learningMemory.length
+    ? `${learningMemory.length} note${learningMemory.length === 1 ? "" : "s"} saved on this device. Say “forget that” to remove a note.`
+    : "Messages and notes you ask Rikx to remember stay in this browser only.";
+}
+
+function answerRikx(input) {
+  const lower = input.toLowerCase();
+  const rememberMatch = input.match(/^(?:rikx[, ]+)?remember(?: that)?[: ]+(.+)$/i);
+  if (rememberMatch) {
+    const note = rememberMatch[1].trim().slice(0, 180);
+    if (note.length < 3) return "Tell me what you'd like me to remember, for example: “Remember that I prefer simple explanations.”";
+    learningMemory.push(note);
+    learningMemory = learningMemory.slice(-12);
+    safeSave(MEMORY_KEY, learningMemory);
+    updateMemoryStatus();
+    return `Got it. I saved this note in your browser: “${note}” I can use it to tailor this demo's replies on this device. It does not train a model or sync elsewhere.`;
+  }
+  if (/forget (?:that|it|everything|my notes)|clear memory/.test(lower)) {
+    learningMemory = [];
+    safeSave(MEMORY_KEY, learningMemory);
+    updateMemoryStatus();
+    return "I cleared the learning notes stored in this browser. You can also clear the conversation with the button below.";
+  }
+  const simple = /\b(simple|simply|beginner|plain language|short)\b/.test(lower) || learningMemory.some((note) => /simple|short|beginner/i.test(note));
+  const greeting = /^(hi|hello|hey|good morning|good evening)\b/.test(lower);
+  if (greeting) return "Hey! I'm Rikx's local learning demo. Ask me a forex question or about the 12-week study plan. You can say “Remember that I prefer simple explanations” to personalize this demo.";
+  if (/what is (?:a )?pip|\bpips?\b/.test(lower)) return simple
+    ? "A pip is a standard small unit used to describe a currency pair's price change. For many pairs it is 0.0001; yen pairs commonly use 0.01. Check the instrument's quote format."
+    : "A pip (“percentage in point”) is a conventional unit for describing a forex price move. It is typically 0.0001 for many pairs and 0.01 for many JPY pairs, though quote precision and contract conventions can vary by provider. A pip's money value depends on pair, position size, and account currency.";
+  if (/leverage|margin/.test(lower)) return simple
+    ? "Leverage lets a small deposit control a larger position. That magnifies losses as well as gains, so a small market move can have a large effect on your account. Practice with hypothetical numbers only."
+    : "Leverage is exposure relative to the funds supporting a position; margin is collateral required by a provider. Leverage magnifies both gains and losses and can lead to rapid losses. Rules and protections vary by jurisdiction and provider. Use the Week 3 material and hypothetical calculations—never assume a stop removes the risk.";
+  if (/spread|bid.?ask|slippage|execution/.test(lower)) return "The bid is generally the price at which you can sell and the ask the price at which you can buy; the difference is the spread. Slippage is the difference between an expected and actual execution price. Both affect results, so include them in any historical test.";
+  if (/risk|safe|should i trade|buy|sell|entry|signal|prediction|profit/.test(lower)) return "I can't tell you whether to buy or sell or promise a prediction. Forex is risky, and this demo has no live prices or market-analysis model. I can explain risk concepts: start with the Week 3 leverage and risk lesson, use paper-only examples, and account for spreads, slippage, and possible losses.";
+  if (/backtest|test (?:a )?strateg|win rate|accuracy|model/.test(lower)) return "A useful test is chronological: define rules first, test on data not used to create them, avoid look-ahead, and include spreads, fees, slippage, missing data, and different market conditions. Review drawdowns and after-cost results—not just win rate. See Weeks 9–10.";
+  if (/what should i study|this week|study plan|curriculum|week/.test(lower)) {
+    const next = weeks.findIndex((_, index) => !completedWeeks.has(index));
+    if (next === -1) return "You've marked all 12 weeks complete. Review your journal and limitations; finishing the program does not demonstrate that a strategy works.";
+    const item = weeks[next];
+    return `Your next uncompleted topic is Week ${next + 1}: ${item.title}. Goal: ${item.goal} Practice: ${item.practice}`;
+  }
+  if (/remember|learn about me|adapt|personaliz/.test(lower)) return "You can personalize this local demo with an explicit note, for example: “Remember that I prefer simple explanations.” I store notes only in this browser. This does not train an AI model; real model-based adaptation needs a secure AI service and clear privacy controls.";
+  const noteLine = learningMemory.length ? ` I have ${learningMemory.length} note${learningMemory.length === 1 ? "" : "s"} saved locally about your learning preferences.` : "";
+  return `I'm a starter demo, so I don't understand every question yet. Try asking about pips, leverage, spreads, risk, backtesting, or the study plan—or tell me “Remember that I prefer simple explanations.”${noteLine} My replies aren't live market analysis or financial advice.`;
+}
+
+if (chatHistory.length) chatHistory.slice(-60).forEach(({ role, text }) => {
+  if ((role === "user" || role === "assistant") && typeof text === "string") addMessage(role, text, false);
+});
+if (!chatLog.children.length) addMessage("assistant", "Hi, I'm Rikx's local learning demo. Ask me about forex basics, risk, or what to study next. I don't have live market data or a live AI model yet.", false);
+updateMemoryStatus();
+
+chatForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const text = chatInput.value.trim();
+  if (!text) return;
+  addMessage("user", text);
+  chatInput.value = "";
+  addMessage("assistant", answerRikx(text));
+});
+
+document.querySelectorAll(".suggestion").forEach((button) => {
+  button.addEventListener("click", () => {
+    chatInput.value = button.dataset.prompt;
+    chatForm.requestSubmit();
+    chatInput.focus();
+  });
+});
+
+document.querySelector("#clear-chat").addEventListener("click", () => {
+  chatHistory = [];
+  learningMemory = [];
+  safeSave(CHAT_KEY, chatHistory);
+  safeSave(MEMORY_KEY, learningMemory);
+  chatLog.replaceChildren();
+  addMessage("assistant", "Chat and learning notes cleared from this browser. What would you like to learn?", false);
+  updateMemoryStatus();
+});
+
+renderWeeks();
