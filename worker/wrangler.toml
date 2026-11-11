@@ -1,0 +1,7 @@
+name = "rikx-market-data"
+main = "index.js"
+compatibility_date = "2026-11-11"
+
+[vars]
+# No provider secrets belong in this file. Configure TWELVE_DATA_API_KEY with:
+# npx wrangler secret put TWELVE_DATA_API_KEY
