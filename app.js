@@ -24,7 +24,8 @@ const ICONS = {
   spark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2 2-6z"/></svg>',
   mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
   trash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M4 7h16M9 7V5h6v2M6 7l1 13h10l1-13"/></svg>',
-  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>'
+  plus: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
+  sources: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M10 13a5 5 0 0 0 7.1 0l2.1-2.1a5 5 0 0 0-7.1-7.1L11 5"/><path d="M14 11a5 5 0 0 0-7.1 0l-2.1 2.1a5 5 0 0 0 7.1 7.1L13 19"/></svg>'
 };
 
 /* ---------------------------------------------------------------- helpers */
@@ -52,6 +53,8 @@ const timeAgo = (ts) => {
 const STORE_KEY = 'rikx-desk-v1';
 const LEARNING_KEY = 'rikx-learning-program-v1';
 
+const READER_DEFAULT = 'https://r.jina.ai/';
+
 const defaultState = () => ({
   limits: { startBalance: 10000, riskPct: 1, dailyLossPct: 3, maxPositions: 4, convictionFloor: 55 },
   paper: { realized: 0, dayStart: 10000, day: todayKey(), open: [], closed: [] },
@@ -59,6 +62,8 @@ const defaultState = () => ({
   accounts: [],
   messages: [],
   memory: [],
+  sources: [],
+  settings: { reader: READER_DEFAULT },
   security: { pinHash: null, salt: null, credentialId: null }
 });
 
@@ -72,6 +77,7 @@ function loadState() {
     ...raw,
     limits: { ...base.limits, ...(raw.limits || {}) },
     paper: { ...base.paper, ...(raw.paper || {}) },
+    settings: { ...base.settings, ...(raw.settings || {}) },
     security: { ...base.security, ...(raw.security || {}) }
   };
   if (!Array.isArray(merged.paper.open)) merged.paper.open = [];
@@ -80,6 +86,7 @@ function loadState() {
   if (!Array.isArray(merged.accounts)) merged.accounts = [];
   if (!Array.isArray(merged.messages)) merged.messages = [];
   if (!Array.isArray(merged.memory)) merged.memory = [];
+  if (!Array.isArray(merged.sources)) merged.sources = [];
   return merged;
 }
 
@@ -160,20 +167,70 @@ function sparkline(history, up) {
   return `<svg class="spark" viewBox="0 0 62 22" aria-hidden="true"><path d="${path}" fill="none" stroke="${stroke}" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
 }
 
+/* ---------------------------------------------------------------- playbook */
+/*
+ * Rikx cannot reason about a whole article in a static page, so the "learning"
+ * here is deliberate and narrow: a link is read, its text is scanned for the
+ * concepts below, and each concept becomes a filed lesson. Filed lessons nudge
+ * conviction on setups with a matching structure. It is keyword digestion, and
+ * the UI says so — it is not comprehension and it is not a strategy.
+ */
+const CONCEPTS = [
+  { tag: 'risk', label: 'Risk first', words: ['risk', 'position size', 'position sizing', 'lot size', 'drawdown', 'exposure'], takeaway: 'Size from the loss you can take, not from how good the idea feels.' },
+  { tag: 'stops', label: 'Invalidation', words: ['stop loss', 'stop-loss', 'stops', 'invalidation', 'invalidate'], takeaway: 'An idea is not a trade until there is a level that proves it wrong.' },
+  { tag: 'liquidity', label: 'Liquidity', words: ['liquidity', 'stop hunt', 'stop run', 'order block', 'supply', 'demand', 'imbalance', 'fair value gap', 'sweep'], takeaway: 'Resting orders sit at obvious levels; entries taken there need room behind the stop.' },
+  { tag: 'trend', label: 'Trend', words: ['trend', 'momentum', 'breakout', 'higher high', 'higher low', 'trending'], takeaway: 'In a trend the pullback is the entry and the trend carries the target.' },
+  { tag: 'range', label: 'Range / mean reversion', words: ['range', 'reversion', 'reversal', 'fade', 'overbought', 'oversold'], takeaway: 'In a range the edges pay and the middle is noise.' },
+  { tag: 'session', label: 'Session timing', words: ['london', 'new york', 'asian', 'session', 'overlap', 'killzone'], takeaway: 'Timing clusters the movement — most FX action lands in the London/New York overlap.' },
+  { tag: 'news', label: 'News risk', words: ['news', 'nfp', 'non-farm', 'cpi', 'fomc', 'interest rate', 'central bank', 'announcement'], takeaway: 'Scheduled data can gap through a stop; stand aside unless the plan prices it.' },
+  { tag: 'psychology', label: 'Process & psychology', words: ['discipline', 'patience', 'journal', 'revenge', 'emotion', 'fomo', 'psychology', 'mistake'], takeaway: 'A plain plan followed beats a clever idea abandoned halfway.' },
+  { tag: 'testing', label: 'Evidence', words: ['backtest', 'win rate', 'expectancy', 'sample size', 'forward test', 'statistics'], takeaway: 'Judge a method on expectancy and drawdown over many trades, not a hot week.' },
+  { tag: 'indicators', label: 'Indicators', words: ['rsi', 'macd', 'ema', 'moving average', 'stochastic', 'bollinger', 'indicator'], takeaway: 'Indicators are transformed past price — they lag and can contradict structure.' },
+  { tag: 'price-action', label: 'Price action', words: ['candlestick', 'pin bar', 'engulfing', 'price action', 'chart pattern', 'support', 'resistance', 'wick'], takeaway: 'Read the reaction at a level before trusting the name of the pattern.' }
+];
+
+const STRUCTURE_TAGS = {
+  trending: ['trend', 'price-action', 'indicators'],
+  ranging: ['range', 'liquidity', 'price-action']
+};
+
+function playbookBonus(structure) {
+  const tags = STRUCTURE_TAGS[structure] || [];
+  const hits = state.sources.reduce((n, s) => n + (s.lessons || []).filter((l) => tags.includes(l.tag)).length, 0);
+  return Math.min(5, hits);
+}
+
+function playbookThemes() {
+  const counts = new Map();
+  state.sources.forEach((s) => (s.lessons || []).forEach((l) => counts.set(l.label, (counts.get(l.label) || 0) + 1)));
+  return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+}
+
+function digest(text) {
+  const lower = ` ${String(text || '').toLowerCase().replace(/\s+/g, ' ')} `;
+  return CONCEPTS.map((c) => {
+    const hits = c.words.reduce((n, w) => n + (lower.split(w).length - 1), 0);
+    return { tag: c.tag, label: c.label, text: c.takeaway, hits };
+  }).filter((c) => c.hits > 0).sort((a, b) => b.hits - a.hits).slice(0, 6);
+}
+
 /* ----------------------------------------------------------------- signals */
 function computeSignal(m) {
   const recent = m.history.slice(-24);
-  const first = recent[0];
-  const move = (m.price - first) / first;
   const change = pctChange(m);
+  const trending = Math.abs(change) >= 0.3;
+  // Trending: follow the session. Ranging: fade it. Keeps direction and the
+  // structure label telling the same story.
+  const dir = (change >= 0) === trending ? 'LONG' : 'SHORT';
+  const dirNum = dir === 'LONG' ? 1 : -1;
   let sameDirection = 0;
   for (let i = 1; i < recent.length; i += 1) {
-    if (Math.sign(recent[i] - recent[i - 1]) === Math.sign(move)) sameDirection += 1;
+    if (Math.sign(recent[i] - recent[i - 1]) === dirNum) sameDirection += 1;
   }
   const consistency = recent.length > 1 ? sameDirection / (recent.length - 1) : 0.5;
-  const dir = move >= 0 ? 'LONG' : 'SHORT';
-  const trending = Math.abs(change) >= 0.3;
-  const conviction = clamp(Math.round(42 + Math.abs(change) * 11 + consistency * 26), 18, 94);
+  const convictionBase = clamp(Math.round(42 + Math.abs(change) * 11 + consistency * 26), 18, 94);
+  const boost = playbookBonus(trending ? 'trending' : 'ranging');
+  const conviction = clamp(convictionBase + boost, 18, 94);
 
   let atr = 0;
   for (let i = 1; i < recent.length; i += 1) atr += Math.abs(recent[i] - recent[i - 1]);
@@ -191,6 +248,8 @@ function computeSignal(m) {
     target,
     stopDistance,
     conviction,
+    convictionBase,
+    boost,
     structure: trending ? 'trending' : 'ranging',
     change
   };
@@ -233,6 +292,22 @@ function usdBias(pos) {
   if (baseCur === 'USD') return dir;
   if (quoteCur === 'USD') return -dir;
   return 0;
+}
+
+/* ---------------------------------------------------------------- chat send */
+async function sendChat(text) {
+  const clean = String(text || '').trim();
+  if (!clean) return;
+  state.messages.push({ role: 'user', text: clean, ts: Date.now() });
+  const found = clean.match(URL_RE);
+  const reply = found ? await ingestLink(found[0], clean) : answerRikx(clean);
+  state.messages.push({ role: 'assistant', text: reply, ts: Date.now() });
+  state.messages = state.messages.slice(-60);
+  save(true);
+  render();
+  const log = document.getElementById('chat-log');
+  if (log) log.scrollTop = log.scrollHeight;
+  document.getElementById('chat-input')?.focus();
 }
 
 /** Every order passes these gates. Returns { ok, reason }. */
@@ -337,6 +412,160 @@ function addAlert(kind, title, body) {
 }
 const unreadCount = () => state.alerts.filter((a) => !a.read).length;
 
+/* -------------------------------------------------------------- link reader */
+const MAX_TEXT = 20000;
+const URL_RE = /(https?:\/\/[^\s<>"']+|www\.[^\s<>"']+)/i;
+
+function normalizeUrl(input) {
+  const raw = String(input || '').trim().replace(/[)\].,]+$/, '');
+  if (!raw) return null;
+  const withScheme = /^https?:\/\//i.test(raw) ? raw : `https://${raw.replace(/^\/+/, '')}`;
+  try {
+    const u = new URL(withScheme);
+    if (!/^https?:$/.test(u.protocol) || !u.hostname.includes('.')) return null;
+    return u;
+  } catch { return null; }
+}
+
+function platformOf(u) {
+  const h = u.hostname.replace(/^www\./, '');
+  if (/youtube\.com$|youtu\.be$|youtube-nocookie\.com$/.test(h)) return 'YouTube';
+  if (/^(x|twitter)\.com$/.test(h)) return 'X';
+  if (/instagram\.com$/.test(h)) return 'Instagram';
+  if (/tiktok\.com$/.test(h)) return 'TikTok';
+  if (/reddit\.com$/.test(h)) return 'Reddit';
+  if (/forexfactory\.com$/.test(h)) return 'Forex Factory';
+  if (/babypips\.com$/.test(h)) return 'BabyPips';
+  if (/tradingview\.com$/.test(h)) return 'TradingView';
+  if (/wikipedia\.org$/.test(h)) return 'Wikipedia';
+  if (/\.(pdf)$/i.test(u.pathname)) return 'PDF';
+  return 'Article';
+}
+
+function htmlToText(html) {
+  try {
+    const doc = new DOMParser().parseFromString(html, 'text/html');
+    doc.querySelectorAll('script,style,noscript,nav,footer,header,aside,form,svg,iframe,button').forEach((n) => n.remove());
+    const title = (doc.querySelector('title')?.textContent || '').replace(/\s+/g, ' ').trim();
+    const blocks = [...doc.querySelectorAll('article p, article li, main p, main li, p, li, h1, h2, h3, blockquote')]
+      .map((n) => n.textContent.replace(/\s+/g, ' ').trim())
+      .filter((t) => t.length >= 60);
+    return { title, text: [...new Set(blocks)].join('\n').slice(0, MAX_TEXT) };
+  } catch { return { title: '', text: '' }; }
+}
+
+async function fetchText(target, ms = 12000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    const res = await fetch(target, {
+      signal: ctrl.signal,
+      credentials: 'omit',
+      redirect: 'follow',
+      headers: { Accept: 'text/html,text/plain,text/markdown,*/*' }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return { body: await res.text(), type: res.headers.get('content-type') || '' };
+  } finally { clearTimeout(timer); }
+}
+
+/* Bot checks, consent walls and error pages read like content but are not. */
+const BLOCK_MARKERS = [
+  'just a moment', 'enable javascript', 'checking your browser', 'attention required',
+  'access denied', 'verify you are human', 'captcha', 'are you a robot', 'request blocked',
+  '403 forbidden', 'cloudflare', 'subscribe to continue', 'sign in to continue'
+];
+
+function looksBlocked(text) {
+  const low = String(text || '').toLowerCase().slice(0, 6000);
+  if (low.trim().length < 400) return true;
+  return BLOCK_MARKERS.some((marker) => low.includes(marker));
+}
+
+/** Try the site directly, then the optional reader service. Returns { text, title, via }. */
+async function readLink(u) {
+  const host = u.hostname.replace(/^www\./, '');
+  const attempts = [];
+  if (/wikipedia\.org$/.test(host)) {
+    const title = decodeURIComponent(u.pathname.split('/').pop() || '').replace(/\.html?$/, '').replace(/_/g, ' ');
+    if (title) attempts.push({ via: 'Wikipedia API', url: `https://${host}/w/api.php?action=query&format=json&prop=extracts&explaintext=1&redirects=1&origin=*&titles=${encodeURIComponent(title)}` });
+  }
+  attempts.push({ via: 'direct', url: u.href });
+  const reader = String(state.settings.reader || '').trim();
+  if (reader) attempts.push({ via: 'reader', url: reader.replace(/\/?$/, '/') + u.href });
+
+  for (const attempt of attempts) {
+    try {
+      const { body, type } = await fetchText(attempt.url);
+      if (attempt.via === 'Wikipedia API') {
+        const json = JSON.parse(body);
+        const page = Object.values(json?.query?.pages || {})[0] || {};
+        const text = String(page.extract || '').slice(0, MAX_TEXT);
+        if (text.length > 200) return { text, title: page.title || '', via: attempt.via };
+        continue;
+      }
+      if (/^\s*\{/.test(body) && /json/i.test(type)) {
+        // Some reader services answer with an error envelope instead of text.
+        continue;
+      }
+      const isHtml = /html/i.test(type) || /^\s*<(!doctype|html)/i.test(body);
+      const parsed = isHtml
+        ? htmlToText(body)
+        : { title: (body.split('\n').find((l) => l.startsWith('Title:')) || '').replace(/^Title:\s*/, '').trim(), text: body.replace(/\n{3,}/g, '\n\n').trim().slice(0, MAX_TEXT) };
+      if (!looksBlocked(parsed.text)) return { text: parsed.text, title: parsed.title, via: attempt.via };
+    } catch { /* try the next route */ }
+  }
+  return { text: '', title: '', via: null };
+}
+
+function sourceTitle(u, read) {
+  const clean = (read.title || '').replace(/\s+/g, ' ').trim();
+  if (clean) return clean.slice(0, 92);
+  const line = (read.text || '').split('\n').map((s) => s.trim()).find((s) => s.length > 20);
+  return line ? line.slice(0, 92) : u.hostname.replace(/^www\./, '');
+}
+
+/** Read a link (or pasted text), file its concepts, and explain what was filed. */
+async function ingestLink(rawUrl, pasted = '') {
+  const u = normalizeUrl(rawUrl);
+  if (!u) return 'That does not look like a link. Send something like https://example.com/article.';
+  const paste = String(pasted || '').trim();
+  const read = paste.length >= 200
+    ? { text: paste.slice(0, MAX_TEXT), title: `${platformOf(u)} · pasted notes`, via: 'pasted text' }
+    : await readLink(u);
+
+  if (!read.text) {
+    return `I could not open ${u.hostname.replace(/^www\./, '')} from this browser — the site blocks cross-origin reads, or the reader service refused it. Nothing was learned from it yet. Paste the transcript or the main points on the Sources page and I will digest those instead.`;
+  }
+
+  const lessons = digest(read.text);
+  if (!lessons.length) {
+    return `I got ${read.text.length.toLocaleString('en-US')} characters from ${u.hostname.replace(/^www\./, '')}, but none of it reads like trading content — likely navigation, a paywall or a bot check. Nothing was filed. Paste the transcript or the key points on the Sources page and I will digest those.`;
+  }
+  const source = {
+    id: `src${Date.now()}`,
+    url: u.href,
+    host: u.hostname.replace(/^www\./, ''),
+    platform: platformOf(u),
+    title: sourceTitle(u, read),
+    chars: read.text.length,
+    text: read.text.slice(0, MAX_TEXT),
+    via: read.via || 'unknown',
+    at: Date.now(),
+    lessons
+  };
+  state.sources = [source, ...state.sources].slice(0, 40);
+  save(true);
+  addAlert('request', `Studied a ${source.platform} link`, `${source.title} — ${lessons.length} concept${lessons.length === 1 ? '' : 's'} filed to the playbook.`);
+
+  const filed = lessons.length
+    ? lessons.slice(0, 3).map((l) => `${l.label} (${l.hits} mention${l.hits === 1 ? '' : 's'})`).join(', ')
+    : 'no concept keywords I recognise';
+  return `Read “${source.title}” from ${source.host} — ${source.chars.toLocaleString('en-US')} characters via ${source.via}. ` +
+    `Filed: ${filed}. That is keyword-level digestion, not comprehension: the takeaways are mine, not the author's words. ` +
+    `The playbook now adds +${playbookBonus('trending')} to trending setups and +${playbookBonus('ranging')} to ranging ones.`;
+}
+
 /* -------------------------------------------------------------------- chat */
 function deskSnapshot() {
   const eq = equity();
@@ -409,6 +638,17 @@ function answerRikx(input) {
   if (/spread|slippage|execution/.test(lower)) return 'Bid/ask spread and slippage are real costs. This simulator fills at the mid without spread, so paper results are optimistic — treat them as practice, not evidence.';
   if (/backtest|test a strateg|win rate/.test(lower)) return 'Test chronologically on data you did not use to build the rules, include spreads and slippage, and look at drawdown and after-cost expectancy — not just win rate. The desk forward-tests on a paper account only.';
 
+  if (/what have you (learned|read)|sources|my links|playbook|studied/.test(lower)) {
+    if (!state.sources.length) {
+      return 'Nothing filed yet. Send me a link — a trader thread, a video, an article — or paste the transcript, and I will digest it into the playbook. Until then my conviction is just the price structure.';
+    }
+    const themes = playbookThemes().slice(0, 4).map(([label, n]) => `${label} (${n})`).join(', ');
+    return `${state.sources.length} source${state.sources.length === 1 ? '' : 's'} filed. Strongest themes: ${themes}. ` +
+      `Latest: “${state.sources[0].title}” from ${state.sources[0].host}. ` +
+      `That shifts conviction by +${playbookBonus('trending')} on trending setups and +${playbookBonus('ranging')} on ranging ones. ` +
+      'The digestion is keyword-based, so treat it as organised reading, not a proven edge.';
+  }
+
   if (/study|learn|week|curriculum/.test(lower)) {
     const next = weeks.findIndex((_, i) => !completedWeeks().has(i));
     if (next === -1) return 'All 12 weeks are marked complete. Review your journal and limitations — finishing the program does not show a strategy works.';
@@ -459,7 +699,8 @@ const ROUTES = [
   { key: 'firewall', label: 'Firewall', icon: 'firewall' },
   { key: 'alerts', label: 'Alerts', icon: 'alerts' },
   { key: 'security', label: 'Security', icon: 'security' },
-  { key: 'learn', label: 'Learn', icon: 'learn' }
+  { key: 'learn', label: 'Learn', icon: 'learn' },
+  { key: 'sources', label: 'Sources', icon: 'sources' }
 ];
 
 const appEl = document.getElementById('app');
@@ -593,7 +834,10 @@ const PAGES = {
           <h1>Market scan</h1>
           <p>15-minute structure across the majors. Every order is re-checked by the firewall before it is filled. Prices here are simulated.</p>
         </div>
-        <button class="btn" data-action="rescan">${ICONS.refresh}<span>Rescan</span></button>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap">
+          ${state.sources.length ? `<a class="pill armed" href="#/sources">PLAYBOOK ${state.sources.length}</a>` : ''}
+          <button class="btn" data-action="rescan">${ICONS.refresh}<span>Rescan</span></button>
+        </div>
       </div>
       <div class="table-wrap"><table>
         <thead><tr><th>PAIR</th><th>PRICE</th><th>CHANGE</th><th>STRUCTURE</th><th>CONVICTION</th><th>STOP / TARGET</th><th>ACTION</th></tr></thead>
@@ -604,7 +848,7 @@ const PAGES = {
             <td class="num">${s.entry.toFixed(s.digits)}</td>
             <td class="num ${s.change >= 0 ? 'up' : 'down'}">${s.change >= 0 ? '+' : ''}${s.change.toFixed(2)}%</td>
             <td><div class="structure">${sparkline(m.history, s.dir === 'LONG')}<span class="side ${s.dir === 'LONG' ? 'long' : 'short'}">${s.dir}</span></div></td>
-            <td class="num">${s.conviction}</td>
+            <td class="num">${s.conviction}${s.boost ? `<span class="conv-boost" title="+${s.boost} from your saved sources">+${s.boost}</span>` : ''}</td>
             <td class="num stop-target">${s.stop.toFixed(s.digits)} / ${s.target.toFixed(s.digits)}</td>
             <td><button class="btn small" data-action="execute" data-pair="${s.pair}">Execute</button></td>
           </tr>`;
@@ -668,7 +912,7 @@ const PAGES = {
           ${messages.map((msg) => `<div class="msg ${msg.role === 'user' ? 'mine' : ''}"><span class="msg-name">${msg.role === 'user' ? 'YOU' : 'RIKX'}</span><p>${esc(msg.text)}</p></div>`).join('')}
         </div>
         <div class="suggestions">
-          ${['How are my positions doing?', "What's the read on EUR/USD?", 'Any setup worth taking right now?', 'How does the firewall size a trade?'].map((p) => `<button class="suggestion" type="button" data-action="suggest" data-prompt="${esc(p)}">${esc(p)}</button>`).join('')}
+          ${['How are my positions doing?', "What's the read on EUR/USD?", 'Any setup worth taking right now?', 'How does the firewall size a trade?', 'What have you learned from my links?'].map((p) => `<button class="suggestion" type="button" data-action="suggest" data-prompt="${esc(p)}">${esc(p)}</button>`).join('')}
         </div>
         <form class="chat-form" id="chat-form">
           <label class="visually-hidden" for="chat-input">Message Rikx</label>
@@ -832,6 +1076,46 @@ const PAGES = {
           <li class="row"><span class="row-name"><a href="https://www.cmegroup.com/education.html" target="_blank" rel="noopener noreferrer">CME Group — Education</a></span><span class="row-value">Markets and risk</span></li>
         </ul>
       </div>`;
+  },
+
+  sources() {
+    const reader = state.settings.reader || '';
+    const themes = playbookThemes();
+    return `
+      <div class="page-head"><h1>Sources</h1><p>Send Rikx a link to a trader, thread or video. He opens it, picks out the concepts, and files them to a playbook he reads before scoring a setup.</p></div>
+
+      <div class="card">
+        <div class="section-head"><h2 class="card-title">Send a link</h2><span class="pill ${state.sources.length ? 'armed' : 'off'}">${state.sources.length} FILED</span></div>
+        <form id="source-form">
+          <div class="field"><label class="field-label" for="source-url">Link</label><input class="input" id="source-url" name="url" placeholder="https://www.youtube.com/watch?v=…" required></div>
+          <div class="field">
+            <label class="field-label" for="source-notes">Paste the transcript or notes <span class="pair-meta">— optional, and the reliable route</span></label>
+            <textarea class="input textarea" id="source-notes" name="notes" rows="4" placeholder="Paste what the trader actually said…"></textarea>
+          </div>
+          <button class="btn primary block" type="submit">${ICONS.sources}<span>Send to Rikx</span></button>
+        </form>
+        <p class="hint">This build runs in the browser, so a link is only readable when the site allows cross-origin reads or the reader service below can fetch it. YouTube and X usually refuse; pasting the points always works.</p>
+      </div>
+
+      ${themes.length ? `<div class="section card">
+        <h2 class="card-title">Playbook</h2>
+        <p class="card-sub">What the filed sources lean on. Trending setups get +${playbookBonus('trending')} conviction, ranging +${playbookBonus('ranging')}.</p>
+        <div class="chips" style="margin-top:.7rem">${themes.map(([label, n]) => `<span class="tag-chip">${esc(label)} · ${n}</span>`).join('')}</div>
+      </div>` : ''}
+
+      <div class="section">
+        ${state.sources.length ? state.sources.map(sourceCard).join('') : '<div class="empty">Nothing filed yet. Send a link above and it lands here with the concepts Rikx picked out.</div>'}
+      </div>
+
+      <div class="section card">
+        <h2 class="card-title">Reader service</h2>
+        <p class="card-sub">Some sites refuse a direct read. A public reader can fetch the page on your behalf. It is only contacted when you send a link, and those links then pass through that third party.</p>
+        <form id="reader-form" style="margin-top:.8rem">
+          <div class="field"><label class="field-label" for="reader-url">Reader endpoint</label><input class="input" id="reader-url" name="reader" value="${esc(reader)}" placeholder="https://r.jina.ai/"></div>
+          <button class="btn" type="submit">Save reader</button>
+        </form>
+        <p class="hint">Leave it blank to read links directly only. Only send public links — never a page behind your login.</p>
+      </div>`;
   }
 };
 
@@ -848,6 +1132,21 @@ function firewallRows() {
     ['Signal quality floor', `Rejects conviction under ${L.convictionFloor}`]
   ];
   return rows.map(([name, value]) => `<li class="row"><span class="row-name">${ICONS.check}${name}</span><span class="row-value">${value}</span></li>`).join('');
+}
+
+function sourceCard(s) {
+  const lessons = s.lessons || [];
+  return `<article class="source">
+    <div class="source-head">
+      <div>
+        <a class="source-title" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.title)}</a>
+        <div class="source-meta">${esc(s.platform)} · ${esc(s.host)} · ${timeAgo(s.at)} · ${Number(s.chars || 0).toLocaleString('en-US')} chars · ${esc(s.via)}</div>
+      </div>
+      <button class="btn small danger" data-action="remove-source" data-id="${s.id}" aria-label="Forget this source">${ICONS.trash}</button>
+    </div>
+    <div class="chips">${lessons.length ? lessons.map((l) => `<span class="tag-chip" title="${esc(l.text)}">${esc(l.label)} · ${l.hits}</span>`).join('') : '<span class="pair-meta">No concept keywords found in this one.</span>'}</div>
+    ${lessons.length ? `<details><summary>What Rikx filed</summary><ul class="lessons">${lessons.map((l) => `<li><strong>${esc(l.label)}</strong> — ${esc(l.text)}</li>`).join('')}</ul></details>` : ''}
+  </article>`;
 }
 
 function alertHtml(alert) {
@@ -893,13 +1192,17 @@ document.addEventListener('click', (event) => {
   }
   if (action === 'ask-rikx' || action === 'suggest') {
     if (action === 'suggest') {
-      const prompt = button.dataset.prompt;
-      state.messages.push({ role: 'user', text: prompt, ts: Date.now() });
-      state.messages.push({ role: 'assistant', text: answerRikx(prompt), ts: Date.now() });
-      state.messages = state.messages.slice(-60);
-      save();
+      sendChat(button.dataset.prompt);
+      if (route === 'messages') return;
     }
     navigate('messages');
+    return;
+  }
+  if (action === 'remove-source') {
+    state.sources = state.sources.filter((s) => s.id !== button.dataset.id);
+    save(true);
+    render();
+    toast('Source forgotten — the playbook no longer uses it.');
     return;
   }
   if (action === 'mark-read') {
@@ -983,7 +1286,7 @@ document.addEventListener('change', (event) => {
   }
 });
 
-document.addEventListener('submit', (event) => {
+document.addEventListener('submit', async (event) => {
   const form = event.target;
 
   if (form.id === 'chat-form') {
@@ -991,14 +1294,41 @@ document.addEventListener('submit', (event) => {
     const input = form.querySelector('#chat-input');
     const text = input.value.trim();
     if (!text) return;
-    state.messages.push({ role: 'user', text, ts: Date.now() });
-    state.messages.push({ role: 'assistant', text: answerRikx(text), ts: Date.now() });
+    input.value = '';
+    sendChat(text);
+    return;
+  }
+
+  if (form.id === 'source-form') {
+    event.preventDefault();
+    const data = new FormData(form);
+    const url = String(data.get('url') || '').trim();
+    const notes = String(data.get('notes') || '');
+    if (!url) return;
+    const button = form.querySelector('button[type="submit"]');
+    const label = button?.querySelector('span');
+    if (button) button.disabled = true;
+    if (label) label.textContent = 'Reading…';
+    form.querySelector('#source-url').value = '';
+    form.querySelector('#source-notes').value = '';
+    const reply = await ingestLink(url, notes);
+    state.messages.push({ role: 'user', text: `Shared a link: ${url}`, ts: Date.now() });
+    state.messages.push({ role: 'assistant', text: reply, ts: Date.now() });
     state.messages = state.messages.slice(-60);
     save(true);
     render();
-    document.getElementById('chat-input')?.focus();
-    const log = document.getElementById('chat-log');
-    if (log) log.scrollTop = log.scrollHeight;
+    toast(reply.startsWith('I could not open') ? 'That link blocked reading — paste the text instead.' : 'Filed to the playbook.');
+    return;
+  }
+
+  if (form.id === 'reader-form') {
+    event.preventDefault();
+    const reader = String(new FormData(form).get('reader') || '').trim();
+    if (reader && !/^https?:\/\//i.test(reader)) return toast('The reader needs a full https:// address.');
+    state.settings.reader = reader;
+    save(true);
+    render();
+    toast(reader ? 'Reader saved — it will be tried after a direct read.' : 'Reader cleared. Links are read directly only.');
     return;
   }
 
