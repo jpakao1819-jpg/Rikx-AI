@@ -1,30 +1,57 @@
 # Rikx-AI
 
-**Rikx-AI is a forex learning and decision-support project.** The current version includes a browser-based 12-week study program, progress tracking, and a small local chat demo that answers selected educational questions.
+**Rikx-AI is a forex paper-trading desk and learning project.** The current build is a static browser app: a simulated market feed, a paper account, a risk "firewall" that gates every order, a desk chat, alerts, account linking, a device lock, and the original 12-week learning program.
 
-## Run the learning program
+## Run it
 
-Open `index.html` in a modern browser, or host the repository as a static website. No build step, account, API key, or external JavaScript dependency is required. Week progress, chat history, and notes you explicitly ask Rikx to remember are saved in local storage on that browser/device; they do not sync across devices. Use **Clear chat & memory** to remove the locally stored conversation and notes. Google Fonts load online, with local font fallbacks.
+Open `index.html` in a modern browser, or host the repo as a static site. No build step, account, API key, or external JavaScript dependency is required. Google Fonts load online with system-font fallbacks.
 
-## Talk with Rikx
+Everything you do is saved in that browser's local storage only — positions, closed trades, alerts, limits, chat, notes, saved accounts and the device lock. Nothing syncs across devices.
 
-The chat demo can answer a limited set of questions about forex basics, risk, leverage, spreads, backtesting, and the curriculum. It can remember a short learning preference or note on the current device when you say, for example, `Remember that I prefer simple explanations.` This is local browser storage and simple response logic—not model training, a live AI service, or persistent learning across users/devices. Avoid entering sensitive or financial account information.
+## The desk
 
-To make Rikx a true conversational AI that can adapt across conversations, connect the interface to a backend service that calls a language model. Keep the provider API key on the server, not in browser JavaScript; provide user-controlled memory, consent, deletion/export controls, and clear limits. Real-time forex data requires a separately selected and properly licensed data provider. Rikx currently has no live market feed, personalized trading advice, broker connection, or order placement.
+- **Desk** — simulated FX ticker, equity / today / open P&L / win rate / realized, Rikx intelligence, live mark-to-market positions, firewall status, latest alerts.
+- **Markets** — 15-minute-style structure scan across nine majors with sparkline, direction, conviction score, stop and target, and an **Execute** button.
+- **Positions** — open and closed fills with full history.
+- **Messages** — one thread with Rikx. He answers with your real numbers: open positions, the read on any pair, the best setup that clears the firewall, and the exact position-sizing math.
+- **Accounts** — attach an OANDA / MetaTrader / cTrader label, account ID and token to this browser. Nothing is transmitted or verified.
+- **Firewall** — the gates every order passes, plus editable risk limits: starting balance, risk per trade, daily loss limit, max open positions, conviction floor.
+- **Alerts** — payouts, stops, firewall blocks and requests, with unread counts.
+- **Security** — 6-digit PIN (salted PBKDF2 hash, never stored as text) and WebAuthn fingerprint, with a lock screen on load and a lock button in the header.
+- **Learn** — the original 12-week curriculum and progress tracking.
+
+### How the paper engine works
+
+- Prices are a random walk seeded from recent-market levels and tick every ~1.6s in the browser.
+- Each pair gets a direction, a conviction score (from session change plus trend consistency), and a stop/target derived from a short-range ATR.
+- An order is only filled if it clears every gate: conviction ≥ floor, free position slots, no duplicate pair, daily loss circuit not tripped, and no more than two positions betting the same way on USD.
+- Size = `equity × risk% ÷ stop distance`. Hitting the stop or target closes the position and books realized P&L.
+- Equity = starting balance + realized + open P&L.
+
+## What is simulated — and what is not
+
+This build has **no server**. Prices are generated locally, fills are simulated at the mid with no spread or slippage, and any broker credentials you enter are stored unencrypted in this browser's local storage. Treat the desk as a practice environment, not a tick-accurate simulator, and never paste a real, trade-enabled API token into it.
+
+Not present, and requiring a backend:
+
+- A real market feed (needs a licensed data provider).
+- Real order routing to a broker.
+- The Gmail "money mail" reader and email desk updates.
+- Multi-device sync, background push, WhatsApp, and per-user accounts.
+- Server-side enforcement of the firewall — here the limits are enforced in the page, so they are a guardrail, not a security boundary.
+
+The original version of this project came from a Base44 app whose limits were enforced server-side. This static rebuild reproduces the interface and behaviour locally; it does not reproduce the server.
+
+## For a true conversational Rikx
+
+Connect the Messages thread to a backend that calls a language model. Keep the provider API key on the server, never in browser JavaScript, and add user-controlled memory with consent, deletion and export. See the README history for the earlier local chat demo.
 
 ## 12-week curriculum
 
-The curriculum covers forex basics, market structure, leverage and risk, economic fundamentals, chart interpretation, testable hypotheses, position sizing, trading psychology, backtesting, evidence evaluation, paper trading, and a final review. It is designed for roughly 3–5 hours per week and can be completed at your own pace.
+Forex basics, market structure, leverage and risk, economic fundamentals, chart interpretation, testable hypotheses, position sizing, trading psychology, backtesting, evidence evaluation, paper trading, and a final review — roughly 3–5 hours per week, self-paced.
 
-Learning references include public material from the U.S. Commodity Futures Trading Commission (CFTC), National Futures Association (NFA), Bank for International Settlements (BIS), Federal Reserve, and CME Group. Rikx does not scrape or ingest these sources automatically. Review current material, terms, and jurisdictional relevance.
-
-## Planned product direction
-
-- Real-time read-only market dashboard with timestamps and stale-data indicators.
-- Explainable analysis that communicates uncertainty and cites data inputs.
-- User-configurable alerts, backtesting with realistic costs, paper trading, and a trade journal.
-- Secure, opt-in AI conversations with explicit controls over any saved learning memory.
+Learning references include public material from the U.S. Commodity Futures Trading Commission (CFTC), National Futures Association (NFA), Bank for International Settlements (BIS), Federal Reserve, and CME Group. Rikx does not scrape or ingest these sources. Review current material, terms, and jurisdictional relevance.
 
 ## Risk notice
 
-Forex trading involves substantial risk and may not be suitable for everyone. This project is for educational purposes and is not financial advice. AI-generated analysis can be wrong, and no strategy or prediction can guarantee profits. Do not risk money you cannot afford to lose.
+Forex trading involves substantial risk and may not be suitable for everyone. This project is for educational purposes and is not financial advice. Paper results prove nothing about live results, and no strategy or prediction can guarantee profits. Do not risk money you cannot afford to lose.

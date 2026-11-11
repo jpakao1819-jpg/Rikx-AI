@@ -3,94 +3,55 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#07060a">
-  <meta name="description" content="Rikx-AI's 12-week forex learning program and local learning coach.">
-  <title>Rikx-AI | Forex Learning Program</title>
+  <meta name="theme-color" content="#08080a">
+  <meta name="description" content="Rikx — a forex desk with a paper-trading firewall, market scan, alerts and a learning program.">
+  <title>Rikx — Desk</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23ef2233'/%3E%3Ctext x='16' y='23' font-family='Arial,sans-serif' font-size='19' font-weight='700' fill='white' text-anchor='middle'%3ER%3C/text%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Cinzel+Decorative:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <script src="app.js" defer></script>
 </head>
 <body>
+  <a class="skip-link" href="#app">Skip to desk</a>
+
   <header class="topbar">
-    <a class="brand" href="#home" aria-label="Rikx-AI home"><span class="brand-mark">R</span><span class="brand-name">Rikx<span>-AI</span></span></a>
-    <span class="program-label">12-WEEK LEARNING PROGRAM</span>
+    <a class="brand" href="#/desk" aria-label="Rikx desk home">
+      <span class="brand-mark" aria-hidden="true">R</span>
+      <span class="brand-name">RIKX</span>
+    </a>
+    <nav class="nav" id="nav" aria-label="Desk sections"></nav>
+    <div class="topbar-actions">
+      <span class="feed-chip" id="feed-chip" title="Prices on this desk are simulated, not a broker feed">SIM</span>
+      <button class="icon-btn" id="lock-btn" type="button" aria-label="Lock the desk" title="Lock the desk"></button>
+    </div>
   </header>
 
-  <main id="home">
-    <section class="hero">
-      <p class="eyebrow">LEARN FIRST · PRACTICE SAFELY</p>
-      <h1>Build forex knowledge,<br><span>one week at a time.</span></h1>
-      <p class="hero-copy">A structured three-month journey through forex fundamentals, risk management, market analysis, and paper-trading practice—guided by credible educational resources.</p>
-      <a class="button primary" href="#rikx-chat">Talk with Rikx <span aria-hidden="true">↓</span></a>
-      <p class="status-note"><span class="status-dot"></span>Learning mode · No live trades · Progress saved in this browser</p>
-    </section>
+  <main id="app" tabindex="-1"></main>
 
-    <section class="chat-section" id="rikx-chat" aria-labelledby="chat-title">
-      <div class="section-heading"><div><p class="eyebrow">YOUR LEARNING COMPANION</p><h2 id="chat-title">Talk with Rikx</h2></div><span class="local-badge"><span></span>LOCAL DEMO</span></div>
-      <p class="chat-intro">Ask about forex concepts or your study plan. Rikx can remember notes and learning preferences on this device when you explicitly ask—but this starter version uses built-in responses, not a live AI model.</p>
-      <div class="chat-shell">
-        <div class="chat-messages" id="chat-messages" role="log" aria-live="polite" aria-relevant="additions text"></div>
-        <div class="suggestions" aria-label="Try asking Rikx">
-          <button type="button" class="suggestion" data-prompt="What is a pip?">What is a pip?</button>
-          <button type="button" class="suggestion" data-prompt="Explain leverage simply">Explain leverage</button>
-          <button type="button" class="suggestion" data-prompt="What should I study this week?">What should I study?</button>
-        </div>
-        <form class="chat-form" id="chat-form">
-          <label class="visually-hidden" for="chat-input">Message Rikx</label>
-          <textarea id="chat-input" name="message" rows="2" maxlength="600" placeholder="Ask Rikx a learning question…" required></textarea>
-          <button class="send-button" type="submit">Send <span aria-hidden="true">↗</span></button>
-        </form>
-        <div class="chat-controls"><p id="memory-status">Messages and any notes you ask Rikx to remember stay in this browser.</p><button id="clear-chat" class="text-button" type="button">Clear chat &amp; memory</button></div>
-      </div>
-    </section>
+  <footer class="footer">
+    <div>
+      <strong>Rikx</strong> · paper desk. Prices on this build are simulated; no broker is connected and no real money moves.
+    </div>
+    <p>Forex trading is high risk and may not suit everyone. Educational software, not financial advice. No strategy or prediction can guarantee profits.</p>
+  </footer>
 
-    <section class="progress-panel" aria-labelledby="progress-title">
-      <div class="progress-heading">
-        <div><p class="eyebrow">YOUR JOURNEY</p><h2 id="progress-title">12-week progress</h2></div>
-        <p class="progress-count"><strong id="completed-count">0</strong><span> / 12 weeks</span></p>
-      </div>
-      <div class="progress-track" id="progress-bar" role="progressbar" aria-label="Program completion" aria-valuemin="0" aria-valuemax="12" aria-valuenow="0"><span id="progress-fill"></span></div>
-      <p class="progress-hint" id="progress-hint">Start with Week 1. Mark a week complete after its study and practice.</p>
-    </section>
+  <div class="lock-screen" id="lock-screen" hidden>
+    <div class="lock-card" role="dialog" aria-modal="true" aria-labelledby="lock-title">
+      <span class="brand-mark" aria-hidden="true">R</span>
+      <h2 id="lock-title">Desk locked</h2>
+      <p id="lock-copy">Enter your PIN to open the desk.</p>
+      <form id="unlock-form" autocomplete="off">
+        <label class="field-label" for="unlock-pin">6-digit PIN</label>
+        <input class="input pin-input" id="unlock-pin" name="pin" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" placeholder="••••••" required>
+        <button class="btn primary block" type="submit">Unlock</button>
+      </form>
+      <button class="btn ghost block" id="unlock-biometric" type="button" hidden>Use fingerprint</button>
+      <p class="lock-error" id="lock-error" role="alert"></p>
+    </div>
+  </div>
 
-    <section class="curriculum-section" id="curriculum">
-      <div class="section-heading"><div><p class="eyebrow">THE CURRICULUM</p><h2>Three months of deliberate study</h2></div><p>About 3–5 hours per week · Learn at your own pace</p></div>
-      <div class="phase-grid" aria-label="Program phases">
-        <div class="phase"><span>01</span><div><strong>Foundations</strong><small>Weeks 1–4 · Understand the market</small></div></div>
-        <div class="phase"><span>02</span><div><strong>Analysis &amp; risk</strong><small>Weeks 5–8 · Build a process</small></div></div>
-        <div class="phase"><span>03</span><div><strong>Practice &amp; review</strong><small>Weeks 9–12 · Test without real money</small></div></div>
-      </div>
-      <div class="week-list" id="week-list" aria-live="polite"></div>
-    </section>
-
-    <section class="principles" aria-labelledby="principles-title">
-      <p class="eyebrow">HOW RIKX SHOULD LEARN</p>
-      <h2 id="principles-title">Principles over promises</h2>
-      <div class="principle-grid">
-        <article><span>01</span><h3>Prefer credible sources</h3><p>Use primary and established educational material. Treat marketing claims, influencer opinions, and profit screenshots as unverified—not evidence.</p></article>
-        <article><span>02</span><h3>Measure honestly</h3><p>Test chronologically on unseen data, include spreads and slippage, and compare with simple baselines. A high win rate alone proves little.</p></article>
-        <article><span>03</span><h3>Protect the learner</h3><p>Practice with simulated funds, communicate uncertainty, and use risk limits. This program does not connect to a broker or place trades.</p></article>
-      </div>
-    </section>
-
-    <section class="resources" aria-labelledby="resources-title">
-      <p class="eyebrow">START WITH TRUSTED MATERIAL</p>
-      <h2 id="resources-title">Learning resources</h2>
-      <p class="resource-intro">These public educational and reference materials can support your study. Check current information, terms, and relevance to your jurisdiction.</p>
-      <ul class="resource-list">
-        <li><a href="https://www.cftc.gov/LearnAndProtect" target="_blank" rel="noopener noreferrer">U.S. CFTC — Learn &amp; Protect</a><span>Consumer education and derivatives-market information</span></li>
-        <li><a href="https://www.nfa.futures.org/investors/investor-resources.html" target="_blank" rel="noopener noreferrer">NFA — Investor Resources</a><span>Information about futures, forex, and associated risks</span></li>
-        <li><a href="https://www.bis.org/statistics/rpfx22.htm" target="_blank" rel="noopener noreferrer">BIS — Triennial Central Bank Survey</a><span>Research and statistics on global foreign-exchange markets</span></li>
-        <li><a href="https://www.federalreserve.gov/monetarypolicy.htm" target="_blank" rel="noopener noreferrer">Federal Reserve — Monetary Policy</a><span>Primary-source policy statements and related materials</span></li>
-        <li><a href="https://www.cmegroup.com/education.html" target="_blank" rel="noopener noreferrer">CME Group — Education</a><span>Educational material on markets, products, and risk</span></li>
-      </ul>
-    </section>
-
-    <aside class="disclaimer"><strong>Important risk notice</strong><p>Forex trading is high risk and may not be suitable for everyone. This program is educational, not financial advice or a trading recommendation. You can lose some or all of your money. AI-generated analysis can be wrong, and no strategy or prediction can guarantee profits.</p></aside>
-  </main>
-
-  <footer><a class="brand" href="#home"><span class="brand-mark">R</span><span class="brand-name">Rikx<span>-AI</span></span></a><span>Learn carefully · Practice on paper · Keep control</span></footer>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 </body>
 </html>
