@@ -1,0 +1,34 @@
+# Caches and build output — never commit these
+node_modules/
+.wrangler/
+.cache/
+.parcel-cache/
+.vite/
+dist/
+build/
+out/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Local env and secrets
+.env
+.env.*
+!.env.example
+.dev.vars
+*.pem
+*.key
+
+# Editor and OS junk
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/
+*.swp
+
+# Logs and temp files
+*.log
+*.tmp
